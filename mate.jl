@@ -1,28 +1,9 @@
-using Gumbo
-# using DataFrames
 using HTTP
-using Cascadia
-# using CSV
-
 # HTMLのサンプルを読み込む（ファイルまたは文字列として）
 include("./mate_ID.jl")
 include("./mate_function.jl")
 
 const N = length(ID)
-
-# Logから勝敗数を抽出する関数
-function extract_win_loss(log::AbstractString)
-    if isnothing(log) || isempty(log)
-        return 0, 0
-    end
-    
-    # 勝敗数を抽出
-    m = match(r"(\d+)\s*勝\s*(\d+)\s*敗", log)
-    if m !== nothing
-        return parse(Int, m[1]), parse(Int, m[2])
-    end
-    return 0, 0
-end
 
 function main()
     try
@@ -31,12 +12,10 @@ function main()
         rate_now = Vector{Int}(undef,N)
         rate_max = Vector{Int}(undef,N)
         rate_log = Vector{String}(undef,N)
-        wins = Vector{Int}(undef,N)
-        losses = Vector{Int}(undef,N)
 
         for i in 1:N
             try
-                ID2df(i,user_name,user_image_url,rate_now,rate_max,rate_log,wins,losses)
+                ID2df(i,user_name,user_image_url,rate_now,rate_max,rate_log)
             catch e
                 @error "Error fetching data for ID $(ID[i])" exception=(e, catch_backtrace())
                 user_name[i] = "Unknown"
@@ -44,8 +23,6 @@ function main()
                 rate_now[i] = 1000
                 rate_max[i] = 1000
                 rate_log[i] = "0勝 0敗"
-                wins[i] = 0
-                losses[i] = 0
             end
         end
 
@@ -53,7 +30,7 @@ function main()
 
         rank = sortperm(junban, rev=true)
 
-        df = (ID=ID[rank], Name = user_name[rank], url = user_image_url[rank], Now = rate_now[rank], Max = rate_max[rank], Log = rate_log[rank], wins = wins[rank], losses = losses[rank])
+        df = (ID=ID[rank], Name = user_name[rank], url = user_image_url[rank], Now = rate_now[rank], Max = rate_max[rank], Log = rate_log[rank])
 
         
         

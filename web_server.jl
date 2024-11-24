@@ -99,7 +99,7 @@ function generate_ranking_table()
         
         # for (i, row) in enumerate(eachrow(df))
         for i in 1:N
-            row = (img_url=df.url[i], name=df.Name[i], current_rate=df.Now[i], max_rate=df.Max[i], wins=df.wins[i], losses=df.losses[i])
+            row = (img_url=df.url[i], name=df.Name[i], current_rate=df.Now[i], max_rate=df.Max[i], Log = df.Log[i])
             
             player_html = """
                 <tr>
@@ -116,7 +116,7 @@ function generate_ranking_table()
                     <td>
                         $(round(Int, row.max_rate))
                     </td>
-                    <td>$(row.wins)勝$(row.losses)敗</td>
+                    <td>$(row.Log)</td>
                 </tr>
             """
             push!(rows, player_html)

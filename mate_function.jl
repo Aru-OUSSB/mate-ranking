@@ -1,35 +1,107 @@
-function ID2df(i,user_name,user_image_url,rate_now,rate_max,rate_log,wins,losses)
+function extract_text_between(content::AbstractString, start_marker::AbstractString, end_marker::AbstractString)
+    s = findfirst(start_marker, content)
+    if isnothing(s)
+        return nothing
+    end
+    start_pos = last(s) + 1
+    e = findnext(end_marker, content, start_pos)
+    if isnothing(e)
+        return nothing
+    end
+    x = first(e)
+    while true
+        x-=1
+        try
+            moji = content[x]
+            break
+        catch
+        end
+    end
+    return strip(content[start_pos:x])
+end
+
+function safe_extract_image_url(content::AbstractString, start_pos::Integer)
+    try
+        src_start = findnext("src=\"", content, start_pos)
+        isnothing(src_start) && return nothing
+        
+        src_end = findnext("\"", content, last(src_start) + 1)
+        isnothing(src_end) && return nothing
+        
+        url = content[last(src_start)+1:first(src_end)-1]
+        return isempty(url) ? nothing : url
+    catch
+        return nothing
+    end
+end
+
+function safe_parse_rate(rate_str::Union{AbstractString, Nothing})
+    try
+        isnothing(rate_str) && return 1000
+        cleaned = strip(replace(rate_str, r"[^0-9]" => ""))
+        isempty(cleaned) && return 1000
+        return parse(Int, cleaned)
+    catch
+        return 1000
+    end
+end
+
+function ID2df(i,user_name,user_image_url,rate_now,rate_max,rate_log)
     url = "https://smashmate.net/user/$(ID[i])/"
 
-    # HTTPリクエストでHTMLを取得
-    response::HTTP.Messages.Response = HTTP.get(url)
+    try
+        # HTTPリクエストでHTMLを取得（最小限のヘッダー）
+        response = HTTP.get(url, ["User-Agent" => "Mozilla/5.0"]; 
+            redirect=true,
+            retry=false,
+            readtimeout=30,
+            connect_timeout=30
+        )
+        
+        
+        # 文字列に変換して必要な情報のみを抽出
+        content = String(response.body)
+        
+        # ユーザー名を抽出
+        name_content = extract_text_between(content, "<span class=\"user-name\">", "</span>")
+        user_name[i] = isnothing(name_content) ? "Unknown" : name_content
 
-    # HTMLのパース
-    responsebody::Vector{UInt8}=response.body
-    # print(typeof(responsebody))
-    html_content::String = String(responsebody)
-    parsed_html::HTMLDocument = parsehtml(html_content)
+        # ユーザー画像URLを抽出
+        img_start_0 = findall("<div class=\"col-xs-4\">",content)[2][end]
+        img_start_1 = findfirst("src=\"",content[img_start_0:end])[end]
+        img_start = img_start_0 + img_start_1
+        img_pos_0 = findfirst('"',content[img_start:end])
+        img_pos = img_start + img_pos_0 - 2
+        user_image_url[i] = content[img_start:img_pos]
 
-    # ユーザー名の抽出
-    nodes1::Vector{HTMLNode} = eachmatch(Selector("span.user-name"), parsed_html.root)
-    user_name[i] = nodes1[1][1].text
-    # ユーザー画像URLの抽出
-    nodes2::Vector{HTMLNode} = eachmatch(Selector("img.user-image"), parsed_html.root)
-    user_image_url[i] = nodes2[1].attributes["src"]
+        # レート情報を抽出
+        rate_divs = findall("<div class=\"col-xs-6\">", content)
+        if length(rate_divs) > 5
+            # 現在のレート
+            current_rate_z = findfirst("</span>",content[rate_divs[2][end]:rate_divs[3][1]])[1]
+            rate_now[i] = parse(Int,match(r"\d{4}",content[rate_divs[2][end]:rate_divs[2][end]+current_rate_z]).match)
+            
+            # 最大レート
+            max_rate_z = findfirst("</span>",content[rate_divs[4][end]:rate_divs[5][1]])[1]
+            rate_max[i] = parse(Int,match(r"\d{4}",content[rate_divs[4][end]:rate_divs[4][end]+max_rate_z]).match)
+            
+            # 対戦成績
+            battle_log = extract_text_between(content[rate_divs[6][end]:rate_divs[7][1]], ">", "</div>")
+            battle_log_z = findfirst("敗",battle_log)[1]
+            rate_log[i] = isnothing(battle_log) ? "0勝 0敗" : battle_log[1:battle_log_z]
+        else
+            rate_now[i] = rate_max[i] = 1000
+            rate_log[i] = "0勝 0敗"
+        end
 
-    # 現在レートを抽出
-    rate_selector = Selector("div.col-xs-6")
-    rate = eachmatch(rate_selector, parsed_html.root)
-    if length(rate)>2
-        rate_now[i] = parse(Int,strip(rate[2][1][1].text))
-        rate_max[i] = parse(Int,strip(rate[4][1][1].text))
-        rate_log[i] = strip(rate[6][1].text)
-        wins[i],losses[i] = extract_win_loss(rate_log[i])
-    else
-        rate_now[i] = 1000
-        rate_max[i] = 1000
+    catch e
+        @warn "Error fetching data for ID $(ID[i]): $e"
+        rate_now[i] = rate_max[i] = 1000
         rate_log[i] = "0勝 0敗"
-        wins[i] = 0
-        losses[i] = 0
+        user_name[i] = "Error"
+        user_image_url[i] = ""
     end
+    
+    # メモリを明示的に解放
+    GC.gc()
 end

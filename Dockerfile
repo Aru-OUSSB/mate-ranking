@@ -6,14 +6,12 @@ COPY . .
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     build-essential \
-    libcairo2-dev \
-    libpango1.0-dev \
     && rm -rf /var/lib/apt/lists/*
 
 # Install Julia packages
 RUN julia -e 'using Pkg; \
     Pkg.activate("."); \
-    Pkg.add(["HTTP", "Dates", "Gumbo", "Cascadia"]); \
+    Pkg.add(["HTTP"]); \
     Pkg.instantiate(); \
     Pkg.precompile()'
 
