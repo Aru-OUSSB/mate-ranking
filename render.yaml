@@ -1,0 +1,11 @@
+services:
+  - type: web
+    name: mate-ranking
+    env: docker
+    buildCommand: julia -e 'using Pkg; Pkg.instantiate()'
+    startCommand: julia web_server.jl
+    envVars:
+      - key: JULIA_NUM_THREADS
+        value: "1"
+    healthCheckPath: /
+    autoDeploy: true

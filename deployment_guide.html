@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Webアプリケーション デプロイ手順書</title>
+    <style>
+        body {
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+            line-height: 1.6;
+            max-width: 800px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            background-color: white;
+            padding: 30px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #2c3e50;
+            border-bottom: 2px solid #3498db;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #2980b9;
+            margin-top: 30px;
+        }
+        .step {
+            background-color: #f8f9fa;
+            padding: 15px;
+            margin: 10px 0;
+            border-left: 4px solid #3498db;
+            border-radius: 0 4px 4px 0;
+        }
+        code {
+            background-color: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-family: Consolas, monospace;
+        }
+        .note {
+            background-color: #fff3cd;
+            border-left: 4px solid #ffc107;
+            padding: 15px;
+            margin: 10px 0;
+        }
+        img {
+            max-width: 100%;
+            height: auto;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Webアプリケーション デプロイ手順書</h1>
+        
+        <h2>1. GitHubアカウントの作成</h2>
+        <div class="step">
+            <ol>
+                <li><a href="https://github.com/" target="_blank">GitHub</a>にアクセス</li>
+                <li>「Sign up」をクリック</li>
+                <li>メールアドレス、パスワード、ユーザーネームを入力</li>
+                <li>メール認証を完了</li>
+            </ol>
+        </div>
+
+        <h2>2. GitHubリポジトリの作成</h2>
+        <div class="step">
+            <ol>
+                <li>GitHubにログイン後、右上の「+」マーク → 「New repository」をクリック</li>
+                <li>Repository nameに「mate-ranking」と入力</li>
+                <li>「Public」を選択</li>
+                <li>「Add a README file」にチェックを入れる</li>
+                <li>「Create repository」をクリック</li>
+            </ol>
+        </div>
+
+        <h2>3. Gitの設定（Git Bashを使用）</h2>
+        <div class="step">
+            <ol>
+                <li>スタートメニューまたはWindowsの検索で「Git Bash」を探して起動</li>
+                <li>Git Bashで以下のコマンドを実行：
+                    <pre><code>git config --global user.name "あなたのGitHubユーザー名"
+git config --global user.email "あなたのメールアドレス"</code></pre>
+                </li>
+            </ol>
+        </div>
+
+        <h2>4. ローカルプロジェクトのGitHub連携</h2>
+        <div class="step">
+            <ol>
+                <li>Git Bashでプロジェクトフォルダに移動：
+                    <pre><code>cd /c/Users/murakami/mate</code></pre>
+                </li>
+                <li>Gitリポジトリを初期化：
+                    <pre><code>git init
+git add .
+git commit -m "Initial commit"</code></pre>
+                </li>
+                <li>GitHubリポジトリと連携（URLは作成したリポジトリのものに置き換え）：
+                    <pre><code>git remote add origin https://github.com/あなたのユーザー名/mate-ranking.git
+git branch -M main
+git push -u origin main</code></pre>
+                </li>
+            </ol>
+        </div>
+
+        <h2>5. Renderへのデプロイ</h2>
+        <div class="step">
+            <ol>
+                <li><a href="https://render.com/" target="_blank">Render</a>にログイン</li>
+                <li>「New +」→「Web Service」を選択</li>
+                <li>GitHubリポジトリを連携（初回は「Configure account」から連携設定が必要）</li>
+                <li>作成したリポジトリ「mate-ranking」を選択</li>
+                <li>以下の設定を確認：
+                    <ul>
+                        <li>Name: mate-ranking</li>
+                        <li>Region: お好みの地域</li>
+                        <li>Branch: main</li>
+                        <li>Root Directory: ./</li>
+                    </ul>
+                </li>
+                <li>「Create Web Service」をクリック</li>
+            </ol>
+        </div>
+
+        <h2>デプロイ後の確認</h2>
+        <div class="step">
+            <ol>
+                <li>デプロイが完了するまで5-10分程度待機</li>
+                <li>ステータスが「Live」になったことを確認</li>
+                <li>生成されたURLにアクセスして動作確認</li>
+            </ol>
+        </div>
+
+        <div class="note">
+            <h3>注意点</h3>
+            <ul>
+                <li>無料プランでは15分間アクセスがないとスリープ状態になります</li>
+                <li>スリープからの復帰に30秒程度かかることがあります</li>
+                <li>GitHubにプッシュすると自動的にRenderに反映されます</li>
+            </ul>
+        </div>
+    </div>
+</body>
+</html>
