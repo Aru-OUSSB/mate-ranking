@@ -50,8 +50,21 @@ function ID2df(i,user_name,user_image_url,rate_now,rate_max,rate_log)
     url = "https://smashmate.net/user/$(ID[i])/"
 
     try
-        # HTTPリクエストでHTMLを取得（最小限のヘッダー）
-        response = HTTP.get(url, ["User-Agent" => "Mozilla/5.0"]; 
+        # HTTPリクエストでHTMLを取得（ブラウザライクなヘッダー）
+        headers = [
+            "User-Agent" => "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+            "Accept" => "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
+            "Accept-Language" => "ja,en-US;q=0.7,en;q=0.3",
+            "Accept-Encoding" => "gzip, deflate, br",
+            "Connection" => "keep-alive",
+            "Upgrade-Insecure-Requests" => "1",
+            "Sec-Fetch-Dest" => "document",
+            "Sec-Fetch-Mode" => "navigate",
+            "Sec-Fetch-Site" => "none",
+            "Sec-Fetch-User" => "?1"
+        ]
+        
+        response = HTTP.get(url, headers; 
             redirect=true,
             retry=false,
             readtimeout=30,

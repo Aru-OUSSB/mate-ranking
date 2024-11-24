@@ -16,6 +16,7 @@ function main()
         for i in 1:N
             try
                 ID2df(i,user_name,user_image_url,rate_now,rate_max,rate_log)
+                sleep(2)  # 2秒待機
             catch e
                 @error "Error fetching data for ID $(ID[i])" exception=(e, catch_backtrace())
                 user_name[i] = "Unknown"
