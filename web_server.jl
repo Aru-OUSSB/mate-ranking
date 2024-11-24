@@ -1,4 +1,5 @@
 using HTTP
+using Dates
 # エラーログを有効化
 ENV["JULIA_DEBUG"] = "all"
 
@@ -70,10 +71,42 @@ const HTML_TEMPLATE = """
 </html>
 """
 
+# キャッシュ用のグローバル変数
+mutable struct Cache
+    data::Union{Nothing, NamedTuple}
+    last_update::Float64
+end
+
+const CACHE = Cache(nothing, 0.0)
+const CACHE_DURATION = 15 * 60  # 15分（秒単位）
+
+# キャッシュされたデータを取得する関数
+function get_cached_ranking()
+    current_time = time()
+    
+    # キャッシュが空か期限切れの場合、新しいデータを取得
+    if isnothing(CACHE.data) || (current_time - CACHE.last_update) > CACHE_DURATION
+        try
+            @info "Updating cache..."
+            CACHE.data = get_current_ranking()
+            CACHE.last_update = current_time
+            @info "Cache updated successfully"
+        catch e
+            @error "Error updating cache" exception=(e, catch_backtrace())
+            # キャッシュの更新に失敗した場合、古いデータを使用
+            if isnothing(CACHE.data)
+                rethrow(e)  # 初回の場合はエラーを投げる
+            end
+        end
+    end
+    
+    return CACHE.data
+end
+
 # ランキングテーブルを生成する関数
 function generate_ranking_table()
     try
-        df = get_current_ranking()
+        df = get_cached_ranking()  # キャッシュされたデータを使用
         
         rows = String[]
         push!(rows, """
@@ -86,7 +119,6 @@ function generate_ranking_table()
             </tr>
         """)
         
-        # for (i, row) in enumerate(eachrow(df))
         for i in 1:N
             row = (img_url=df.url[i], name=df.Name[i], current_rate=df.Now[i], max_rate=df.Max[i], Log = df.Log[i])
             
@@ -111,7 +143,15 @@ function generate_ranking_table()
             push!(rows, player_html)
         end
         
-        return "<table>" * join(rows) * "</table>"
+        # 最終更新時刻を追加
+        # last_update = Dates.format(Dates.unix2datetime(CACHE.last_update), "yyyy-mm-dd HH:MM:SS")
+        # update_info = """
+        #     <div style="text-align: right; margin-top: 10px; color: #666;">
+        #         最終更新: $(last_update)
+        #     </div>
+        # """
+        
+        return "<table>" * join(rows) * "</table>"# * update_info
     catch e
         @error "Error generating ranking table" exception=(e, catch_backtrace())
         return "<p>ランキングの読み込み中にエラーが発生しました。</p>"
@@ -159,9 +199,11 @@ function start_server(port=8080)
 end
 
 # エラーハンドリングを追加
-try
-    start_server()
-catch e
-    @error "Server error" exception=(e, catch_backtrace())
-    rethrow(e)
-end
+# if abspath(PROGRAM_FILE) == @__FILE__
+    try
+        start_server()
+    catch e
+        @error "Server error" exception=(e, catch_backtrace())
+        rethrow(e)
+    end
+# end
