@@ -1,15 +1,4 @@
-# using Pkg
-# Pkg.add("DataFrames")
-# Pkg.add("CSV")
-# Pkg.add("Dates")
-
 using HTTP
-using Dates
-# using DataFrames
-using Gumbo
-using Cascadia
-# using CSV
-
 # エラーログを有効化
 ENV["JULIA_DEBUG"] = "all"
 
