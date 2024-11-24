@@ -78,28 +78,42 @@ mutable struct Cache
 end
 
 const CACHE = Cache(nothing, 0.0)
-const CACHE_DURATION = 15 * 60  # 15分（秒単位）
+const CACHE_DURATION = 10 * 60  # 10分（秒単位）
+
+# バックグラウンドでキャッシュを更新する関数
+function update_cache_periodically()
+    while true
+        try
+            @info "Scheduled cache update starting..."
+            CACHE.data = get_current_ranking()
+            CACHE.last_update = time()
+            @info "Cache updated successfully"
+            sleep(CACHE_DURATION)  # 10分待機
+        catch e
+            @error "Error in periodic cache update" exception=(e, catch_backtrace())
+            sleep(60)  # エラー時は1分待って再試行
+        end
+    end
+end
+
+# サーバー起動時にバックグラウンドタスクを開始
+function start_background_tasks()
+    @async update_cache_periodically()
+end
 
 # キャッシュされたデータを取得する関数
 function get_cached_ranking()
-    current_time = time()
-    
-    # キャッシュが空か期限切れの場合、新しいデータを取得
-    if isnothing(CACHE.data) || (current_time - CACHE.last_update) > CACHE_DURATION
+    if isnothing(CACHE.data)
         try
-            @info "Updating cache..."
+            @info "Initial cache population..."
             CACHE.data = get_current_ranking()
-            CACHE.last_update = current_time
-            @info "Cache updated successfully"
+            CACHE.last_update = time()
+            @info "Initial cache populated successfully"
         catch e
-            @error "Error updating cache" exception=(e, catch_backtrace())
-            # キャッシュの更新に失敗した場合、古いデータを使用
-            if isnothing(CACHE.data)
-                rethrow(e)  # 初回の場合はエラーを投げる
-            end
+            @error "Error in initial cache population" exception=(e, catch_backtrace())
+            rethrow(e)
         end
     end
-    
     return CACHE.data
 end
 
@@ -166,13 +180,66 @@ function main_handler(req::HTTP.Request)
         end
 
         ranking_table = generate_ranking_table()
-        html = replace(HTML_TEMPLATE, "{{RANKING_TABLE}}" => ranking_table)
+        html = """
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>スマメイトレート ランキング</title>
+            <style>
+                body {
+                    font-family: Arial, sans-serif;
+                    margin: 20px;
+                    background-color: #f5f5f5;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    background-color: white;
+                    box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+                }
+                th, td {
+                    padding: 12px;
+                    text-align: left;
+                    border-bottom: 1px solid #ddd;
+                }
+                th {
+                    background-color: #4CAF50;
+                    color: white;
+                }
+                tr:nth-child(even) {
+                    background-color: #f9f9f9;
+                }
+                tr:hover {
+                    background-color: #f5f5f5;
+                }
+                img {
+                    width: 50px;
+                    height: 50px;
+                    border-radius: 25px;
+                }
+                .update-info {
+                    text-align: right;
+                    color: #666;
+                    margin-top: 10px;
+                    font-size: 0.9em;
+                }
+            </style>
+        </head>
+        <body>
+            <h1>スマメイトレート ランキング</h1>
+            $(ranking_table)
+            <div class="update-info">
+                10分ごとに自動更新
+            </div>
+        </body>
+        </html>
+        """
         
-        return HTTP.Response(200, ["Content-Type" => "text/html"], html)
+        return HTTP.Response(200, ["Content-Type" => "text/html; charset=utf-8"], body=html)
     catch e
         @error "Error in main_handler" exception=(e, catch_backtrace())
-        return HTTP.Response(500, ["Content-Type" => "text/html"], 
-            body="<html><body><h1>Internal Server Error</h1><p>申し訳ありませんが、エラーが発生しました。</p></body></html>")
+        return HTTP.Response(500, "Internal Server Error")
     end
 end
 
@@ -188,6 +255,8 @@ function start_server(port=8080)
     
     is_production = haskey(ENV, "RENDER")
     host = is_production ? "0.0.0.0" : "127.0.0.1"
+    
+    start_background_tasks()  # バックグラウンドタスクを開始
     
     if is_production
         println("Starting production server on port $port")

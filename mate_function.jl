@@ -46,33 +46,53 @@ function safe_parse_rate(rate_str::Union{AbstractString, Nothing})
     end
 end
 
+# ランダムなUser-Agentを生成する関数
+function random_user_agent()
+    user_agents = [
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0.0.0 Safari/537.36",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/119.0",
+        "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Edge/119.0.0.0",
+        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36"
+    ]
+    return rand(user_agents)
+end
+
 function ID2df(i,user_name,user_image_url,rate_now,rate_max,rate_log)
     url = "https://smashmate.net/user/$(ID[i])/"
-    max_retries = 3  # 最大リトライ回数
-    retry_delay = 5  # リトライ間の待機時間（秒）
+    max_retries = 3
+    retry_delay = rand(5:10)  # 5-10秒のランダムな待機時間
 
     for retry_count in 1:max_retries
         try
-            # HTTPリクエストでHTMLを取得（ブラウザライクなヘッダー）
+            # より自然なブラウザヘッダー
             headers = [
-                "User-Agent" => "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36",
-                "Accept" => "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8",
-                "Accept-Language" => "ja,en-US;q=0.7,en;q=0.3",
+                "User-Agent" => random_user_agent(),
+                "Accept" => "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8",
+                "Accept-Language" => "ja,en-US;q=0.9,en;q=0.8",
                 "Accept-Encoding" => "gzip, deflate, br",
-                "Connection" => "close",  # keep-aliveをcloseに変更
-                "Upgrade-Insecure-Requests" => "1",
+                "Connection" => "close",
+                "Cache-Control" => "max-age=0",
+                "Sec-Ch-Ua" => "\"Google Chrome\";v=\"119\", \"Chromium\";v=\"119\", \"Not?A_Brand\";v=\"24\"",
+                "Sec-Ch-Ua-Mobile" => "?0",
+                "Sec-Ch-Ua-Platform" => "\"Windows\"",
                 "Sec-Fetch-Dest" => "document",
                 "Sec-Fetch-Mode" => "navigate",
                 "Sec-Fetch-Site" => "none",
-                "Sec-Fetch-User" => "?1"
+                "Sec-Fetch-User" => "?1",
+                "Upgrade-Insecure-Requests" => "1",
+                "Pragma" => "no-cache"
             ]
+            
+            # リクエスト前に少し待機
+            sleep(rand(2:4))
             
             response = HTTP.get(url, headers; 
                 redirect=true,
                 retry=false,
                 readtimeout=30,
                 connect_timeout=30,
-                status_exception=false  # エラーステータスでも例外を投げない
+                status_exception=false
             )
 
             # レスポンスステータスのチェック
