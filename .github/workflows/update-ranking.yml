@@ -1,32 +1,32 @@
-name: Update Ranking
+# name: Update Ranking
 
-on:
-  schedule:
-    - cron: '*/10 * * * *'  # 10分ごとに実行
-  workflow_dispatch:  # 手動実行も可能
+# on:
+#   schedule:
+#     - cron: '*/10 * * * *'  # 10分ごとに実行
+#   workflow_dispatch:  # 手動実行も可能
 
-jobs:
-  update-ranking:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v2
+# jobs:
+#   update-ranking:
+#     runs-on: ubuntu-latest
+#     steps:
+#       - uses: actions/checkout@v2
       
-      - name: Set up Julia
-        uses: julia-actions/setup-julia@v1
-        with:
-          version: '1.11'
+#       - name: Set up Julia
+#         uses: julia-actions/setup-julia@v1
+#         with:
+#           version: '1.11'
           
-      - name: Install dependencies
-        run: |
-          julia -e 'using Pkg; Pkg.add(["HTTP", "Dates"])'
+#       - name: Install dependencies
+#         run: |
+#           julia -e 'using Pkg; Pkg.add(["HTTP", "Dates"])'
           
-      - name: Generate ranking
-        run: julia generate_ranking.jl
+#       - name: Generate ranking
+#         run: julia generate_ranking.jl
         
-      - name: Commit and push if changed
-        run: |
-          git config --global user.name 'GitHub Actions'
-          git config --global user.email 'actions@github.com'
-          git add docs/index.html
-          git commit -m "Update ranking" || exit 0
-          git push
+#       - name: Commit and push if changed
+#         run: |
+#           git config --global user.name 'GitHub Actions'
+#           git config --global user.email 'actions@github.com'
+#           git add docs/index.html
+#           git commit -m "Update ranking" || exit 0
+#           git push
